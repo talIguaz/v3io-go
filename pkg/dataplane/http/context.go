@@ -224,6 +224,9 @@ func (c *context) GetItems(getItemsInput *v3io.GetItemsInput,
 
 // GetItemSync
 func (c *context) GetItemsSync(getItemsInput *v3io.GetItemsInput) (*v3io.Response, error) {
+	defer func(start time.Time) {
+		c.logger.Info("GetItemsSync took: %v", time.Now().Sub(start))
+	}(time.Now())
 
 	// create GetItem Body
 	body := map[string]interface{}{}
@@ -270,6 +273,7 @@ func (c *context) GetItemsSync(getItemsInput *v3io.GetItemsInput) (*v3io.Respons
 		return nil, err
 	}
 
+	startTime := time.Now()
 	response, err := c.sendRequest(&getItemsInput.DataPlaneInput,
 		"PUT",
 		getItemsInput.Path,
@@ -277,10 +281,12 @@ func (c *context) GetItemsSync(getItemsInput *v3io.GetItemsInput) (*v3io.Respons
 		getItemsHeadersCapnp,
 		marshalledBody,
 		false)
-
 	if err != nil {
 		return nil, err
 	}
+
+	endTime := time.Now()
+	c.logger.Info("calling context.sendRequest %v", endTime.Sub(startTime))
 
 	contentType := string(response.HeaderPeek("Content-Type"))
 
@@ -848,12 +854,14 @@ func (c *context) sendRequest(dataPlaneInput *v3io.DataPlaneInput,
 		"method", method,
 		"body", string(request.Body()))
 
+	startTime := time.Now()
 	if dataPlaneInput.Timeout <= 0 {
 		err = c.httpClient.Do(request, response.HTTPResponse)
 	} else {
 		err = c.httpClient.DoTimeout(request, response.HTTPResponse, dataPlaneInput.Timeout)
 	}
-
+	endTime := time.Now()
+	c.logger.Info("fast http request took: %v ", endTime.Sub(startTime))
 	if err != nil {
 		goto cleanup
 	}
@@ -1063,6 +1071,7 @@ func (c *context) workerEntry(workerIndex int) {
 		var response *v3io.Response
 		var err error
 
+		startTime := time.Now()
 		// read a request
 		request := <-c.requestChan
 
@@ -1116,6 +1125,9 @@ func (c *context) workerEntry(workerIndex int) {
 
 		// write to response channel
 		request.ResponseChan <- &request.RequestResponse.Response
+
+		endTime := time.Now()
+		c.logger.Info("worker entry took: %v", endTime.Sub(startTime))
 	}
 }
 
@@ -1193,7 +1205,7 @@ func decodeCapnpAttributes(keyValues node_common_capnp.VnObjectItemsGetMappedKey
 func (c *context) getItemsParseJSONResponse(response *v3io.Response, getItemsInput *v3io.GetItemsInput) (*v3io.GetItemsOutput, error) {
 
 	getItemsResponse := struct {
-		Items            []map[string]map[string]interface{}
+		Items []map[string]map[string]interface{}
 		NextMarker       string
 		LastItemIncluded string
 	}{}
