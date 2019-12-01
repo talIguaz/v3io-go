@@ -83,6 +83,8 @@ func NewContext(parentLogger logger.Logger, client *fasthttp.Client, newContextI
 	for workerIndex := 0; workerIndex < numWorkers; workerIndex++ {
 		go newContext.workerEntry(workerIndex)
 	}
+	newContext.logger.Info("created %v v3io-go workers with a request channel length of %v",
+		numWorkers, requestChanLen)
 
 	return newContext, nil
 }
@@ -1071,6 +1073,7 @@ func (c *context) workerEntry(workerIndex int) {
 		var response *v3io.Response
 		var err error
 
+		c.logger.Info("%v messages in request channel", len(c.requestChan))
 		startTime := time.Now()
 		// read a request
 		request := <-c.requestChan
