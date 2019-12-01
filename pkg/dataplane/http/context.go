@@ -1064,6 +1064,7 @@ func (c *context) sendRequestToWorker(input interface{},
 
 	// send the request to the request channel
 	c.requestChan <- &requestResponse.Request
+	c.logger.Info("%v messages in request channel", len(c.requestChan))
 
 	return &requestResponse.Request, nil
 }
@@ -1073,7 +1074,6 @@ func (c *context) workerEntry(workerIndex int) {
 		var response *v3io.Response
 		var err error
 
-		c.logger.Info("%v messages in request channel", len(c.requestChan))
 		startTime := time.Now()
 		// read a request
 		request := <-c.requestChan
