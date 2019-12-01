@@ -1083,7 +1083,6 @@ func (c *context) workerEntry(workerIndex int) {
 		request := <-c.requestChan
 
 		midTime := time.Now()
-		c.logger.Info("waited to get from chan for %v", midTime.Sub(startTime))
 
 		id := 0
 		// according to the input type
@@ -1135,11 +1134,13 @@ func (c *context) workerEntry(workerIndex int) {
 		response.RequestResponse = request.RequestResponse
 		response.Context = request.Context
 
+		beforeResChan := time.Now()
 		// write to response channel
 		request.ResponseChan <- &request.RequestResponse.Response
 
 		endTime := time.Now()
-		c.logger.Info("%v - worker entry took: %v", id, endTime.Sub(startTime))
+		c.logger.Info("%v - worker %v entry took total: %v, pop from channel took %v, insert to res channel took: %v",
+			id, workerIndex, endTime.Sub(startTime), midTime.Sub(startTime), endTime.Sub(beforeResChan))
 	}
 }
 
