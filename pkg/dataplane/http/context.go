@@ -1062,9 +1062,13 @@ func (c *context) sendRequestToWorker(input interface{},
 	// point to container
 	requestResponse.Request.RequestResponse = requestResponse
 
+	startTime := time.Now()
 	// send the request to the request channel
 	c.requestChan <- &requestResponse.Request
-	c.logger.Info("%v messages in request channel", len(c.requestChan))
+
+	endTime := time.Now()
+	c.logger.Info("took %v to insert to req chan, now has %v messages",
+		endTime.Sub(startTime), len(c.requestChan))
 
 	return &requestResponse.Request, nil
 }
@@ -1077,6 +1081,9 @@ func (c *context) workerEntry(workerIndex int) {
 		startTime := time.Now()
 		// read a request
 		request := <-c.requestChan
+
+		midTime := time.Now()
+		c.logger.Info("waited to get from chan for %v", midTime.Sub(startTime))
 
 		id := 0
 		// according to the input type
