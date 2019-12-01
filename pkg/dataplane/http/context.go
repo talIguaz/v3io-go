@@ -286,7 +286,7 @@ func (c *context) GetItemsSync(getItemsInput *v3io.GetItemsInput) (*v3io.Respons
 	}
 
 	endTime := time.Now()
-	c.logger.Info("calling context.sendRequest %v", endTime.Sub(startTime))
+	c.logger.Info("%v - calling context.sendRequest %v", getItemsInput.Segment, endTime.Sub(startTime))
 
 	contentType := string(response.HeaderPeek("Content-Type"))
 
@@ -1075,6 +1075,7 @@ func (c *context) workerEntry(workerIndex int) {
 		// read a request
 		request := <-c.requestChan
 
+		id := 0
 		// according to the input type
 		switch typedInput := request.Input.(type) {
 		case *v3io.PutObjectInput:
@@ -1086,6 +1087,7 @@ func (c *context) workerEntry(workerIndex int) {
 		case *v3io.GetItemInput:
 			response, err = c.GetItemSync(typedInput)
 		case *v3io.GetItemsInput:
+			id = typedInput.Segment
 			response, err = c.GetItemsSync(typedInput)
 		case *v3io.PutItemInput:
 			err = c.PutItemSync(typedInput)
@@ -1127,7 +1129,7 @@ func (c *context) workerEntry(workerIndex int) {
 		request.ResponseChan <- &request.RequestResponse.Response
 
 		endTime := time.Now()
-		c.logger.Info("worker entry took: %v", endTime.Sub(startTime))
+		c.logger.Info("%v - worker entry took: %v", id, endTime.Sub(startTime))
 	}
 }
 
